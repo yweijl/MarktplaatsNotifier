@@ -1,5 +1,7 @@
 ﻿using AngleSharp;
 using AngleSharp.Html.Dom;
+using Api.Interfaces;
+using Runner.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,16 +12,16 @@ using System.Threading.Tasks;
 
 namespace Runner
 {
-    public class Runner
+    public class Runner : IScraper
     {
-        private static readonly string _url = "https://www.marktplaats.nl/l/watersport-en-boten/surfen-golfsurfen/f/fish/8354/#distanceMeters:25000|postcode:2563GP|searchInTitleAndDescription:true";
-        private static readonly string _fileName = _url.GetStableHashCode().ToString();
+        //private static readonly string _url = "https://www.marktplaats.nl/l/watersport-en-boten/surfen-golfsurfen/f/fish/8354/#distanceMeters:25000|postcode:2563GP|searchInTitleAndDescription:true";
+        //private static readonly string _fileName = _url.GetStableHashCode().ToString();
         private static readonly string _path = Path.Combine(Directory.GetCurrentDirectory(), "Imports");
         
-        public static async Task RunAsync()
+        public static async Task RunAsync(string queryUrl)
         {
             SetDirectory();
-            var data = await GetDataAsync();
+            var data = await GetDataAsync(queryUrl);
             var items = await GetNewItemsAsync(data);
             var cleanedItems = CompareWithLastImport(items);
             EmailClient.Send(cleanedItems);
@@ -138,9 +140,9 @@ namespace Runner
             return document;
         }
 
-        private static async Task<string> GetDataAsync()
+        private static async Task<string> GetDataAsync(string queryUrl)
         {
-            var request = (HttpWebRequest)WebRequest.Create(_url);
+            var request = (HttpWebRequest)WebRequest.Create(queryUrl);
             using var response = (HttpWebResponse)request.GetResponse();
 
             if (response.StatusCode != HttpStatusCode.OK)

@@ -15,6 +15,10 @@ namespace Runner
 
         }
 
+        public ScrapeException(string message, Exception inner) : base(message, inner)
+        {
+        }
+
         public ScrapeException(string message, string url ,Exception inner) : base(message, inner)
         {
             Url = url;
