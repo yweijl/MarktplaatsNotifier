@@ -10,7 +10,7 @@ namespace Runner
             try
             {
                 var runner = new Runner();
-                await Runner.RunAsync();
+                await runner.RunAsync("url");
             }
             catch (Exception ex)
             {

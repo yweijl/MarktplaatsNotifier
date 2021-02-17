@@ -1,13 +1,15 @@
-﻿using Api.Entities;
+﻿using Core.Entities;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Api.Infrastructure
 {
     public static class DefaultSeed
     {
-        public static void Initialize(DatabaseContext context)
+        public async static Task InitializeAsync(DatabaseContext context, RoleManager<Role> roleManager, UserManager<User> userManager)
         {
             context.Database.EnsureCreated();
 
@@ -20,10 +22,8 @@ namespace Api.Infrastructure
 
             var user = new User
             {
-                CreateDate = now,
-                MutationDate = now,
+                UserName = "yos",
                 Email = "Test@gmail.com",
-                Password = "123",
                 Queries = new List<Query>
                 {
                     new Query
@@ -39,7 +39,7 @@ namespace Api.Infrastructure
                             {
                                 CreateDate = now,
                                 MutationDate = now,
-                                Name = "surfboard",
+                                Title = "surfboard",
                                 Description = "is mooi",
                                 Price = "bieden",
                                 ImageUrl = "url",
@@ -49,6 +49,10 @@ namespace Api.Infrastructure
                     }
                 }
             };
+
+            await roleManager.CreateAsync(new Role { Name = "User", NormalizedName = "User", ConcurrencyStamp = Guid.NewGuid().ToString() });
+            await userManager.CreateAsync(user, "Qwerty1!");
+            await userManager.AddToRoleAsync(user, "User");
 
             context.Users.Add(user);
             context.SaveChanges();

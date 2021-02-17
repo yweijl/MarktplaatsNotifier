@@ -1,7 +1,8 @@
 ﻿using AngleSharp;
 using AngleSharp.Html.Dom;
-using Api.Interfaces;
+using Core.Entities;
 using Runner.Interfaces;
+using Shared;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,17 +15,29 @@ namespace Runner
 {
     public class Runner : IScraper
     {
-        //private static readonly string _url = "https://www.marktplaats.nl/l/watersport-en-boten/surfen-golfsurfen/f/fish/8354/#distanceMeters:25000|postcode:2563GP|searchInTitleAndDescription:true";
-        //private static readonly string _fileName = _url.GetStableHashCode().ToString();
+        private string _url;
+        private string _fileName;
         private static readonly string _path = Path.Combine(Directory.GetCurrentDirectory(), "Imports");
         
-        public static async Task RunAsync(string queryUrl)
+        public async Task<List<Advertisement>> RunAsync(string queryUrl)
         {
-            SetDirectory();
-            var data = await GetDataAsync(queryUrl);
-            var items = await GetNewItemsAsync(data);
-            var cleanedItems = CompareWithLastImport(items);
-            EmailClient.Send(cleanedItems);
+            try
+            {
+                this._url = queryUrl;
+                this._fileName = _url.GetStableHashCode().ToString();
+
+                SetDirectory();
+                var data = await GetDataAsync();
+                var items = await GetNewItemsAsync(data);
+                var cleanedItems = CompareWithLastImport(items);
+                EmailClient.Send(cleanedItems);
+                return cleanedItems;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
         }
 
         private static void SetDirectory()
@@ -37,12 +50,12 @@ namespace Runner
             Directory.SetCurrentDirectory(_path);
         }
 
-        private static List<Advertisement> CompareWithLastImport(List<Advertisement> items)
+        private List<Advertisement> CompareWithLastImport(List<Advertisement> items)
         {
             var itemHashDictionary = new Dictionary<int, Advertisement>();
             foreach (var item in items)
             {
-                itemHashDictionary.Add(item.GetHashCode(), item);
+                itemHashDictionary.TryAdd(item.GetHashCode(), item);
             }
 
             var currentImport = itemHashDictionary.Keys;
@@ -55,7 +68,7 @@ namespace Runner
             return newItems;
         }
 
-        private static void SaveNewItemsToDisk(List<Advertisement> newItems)
+        private void SaveNewItemsToDisk(List<Advertisement> newItems)
         {
             if (newItems.Count == 0)
             {
@@ -65,7 +78,7 @@ namespace Runner
             File.AppendAllLines(_fileName, newItems.Select(x => x.GetHashCode().ToString()));
         }
 
-        private static List<int> GetLastImportFromDisk()
+        private List<int> GetLastImportFromDisk()
         {
             var lastImport = new List<int>();
             
@@ -82,7 +95,7 @@ namespace Runner
             return lastImport;
         }
 
-        private static async Task<List<Advertisement>> GetNewItemsAsync(string data)
+        private async Task<List<Advertisement>> GetNewItemsAsync(string data)
         {
             if (string.IsNullOrWhiteSpace(data))
             {
@@ -93,7 +106,7 @@ namespace Runner
             return GetItems(document);
         }
 
-        private static List<Advertisement> GetItems(AngleSharp.Dom.IDocument document)
+        private List<Advertisement> GetItems(AngleSharp.Dom.IDocument document)
         {
             try
             {
@@ -120,7 +133,7 @@ namespace Runner
                             Description = description?.TextContent,
                             Price = price?.TextContent,
                             Url = anchor?.Href,
-                            ImgSource = img?.Source
+                            ImageUrl = img?.Source
                         });
                 }
 
@@ -140,9 +153,9 @@ namespace Runner
             return document;
         }
 
-        private static async Task<string> GetDataAsync(string queryUrl)
+        private async Task<string> GetDataAsync()
         {
-            var request = (HttpWebRequest)WebRequest.Create(queryUrl);
+            var request = (HttpWebRequest)WebRequest.Create(_url);
             using var response = (HttpWebResponse)request.GetResponse();
 
             if (response.StatusCode != HttpStatusCode.OK)

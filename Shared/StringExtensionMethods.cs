@@ -1,4 +1,4 @@
-﻿namespace Runner
+﻿namespace Shared
 {
     public static class StringExtensionMethods
     {

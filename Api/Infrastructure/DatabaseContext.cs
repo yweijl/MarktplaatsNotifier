@@ -1,11 +1,12 @@
-﻿using Api.Entities;
+﻿using Core.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace Api.Infrastructure
 {
-    public class DatabaseContext : DbContext
+    public class DatabaseContext : IdentityDbContext<User, Role, Guid>  
     {
-        public DbSet<User> Users { get; set; }
         public DbSet<Query> Queries { get; set; }
         public DbSet<Advertisement> Advertisements { get; set; }
 
@@ -15,7 +16,7 @@ namespace Api.Infrastructure
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-          
+            base.OnModelCreating(modelBuilder);
         }
     }
 }

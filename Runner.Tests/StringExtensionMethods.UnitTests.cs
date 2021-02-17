@@ -1,5 +1,7 @@
+using Core.Entities;
 using NUnit.Framework;
 using Runner;
+using Shared;
 
 namespace Runner.Tests
 {
@@ -12,7 +14,7 @@ namespace Runner.Tests
             var advertisement = new Advertisement 
             {
                 Description = @"12~@#ds./\';",
-                ImgSource = @"!@$#@##^$%^&GHFDHDJGJ:56",
+                ImageUrl = @"!@$#@##^$%^&GHFDHDJGJ:56",
                 Price = "123,345",
                 Title = "HSDJKH32445hjhj",
                 Url = @"https://www.hallo.com?24324=q#23"
