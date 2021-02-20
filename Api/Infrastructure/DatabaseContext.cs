@@ -5,7 +5,7 @@ using System;
 
 namespace Api.Infrastructure
 {
-    public class DatabaseContext : IdentityDbContext<User, Role, Guid>  
+    public class DatabaseContext : IdentityDbContext<User, Role, long>  
     {
         public DbSet<Query> Queries { get; set; }
         public DbSet<Advertisement> Advertisements { get; set; }

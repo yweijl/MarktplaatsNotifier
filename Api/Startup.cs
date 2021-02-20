@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Runner.Interfaces;
+using System;
 using System.Text;
 
 namespace Api
@@ -83,7 +84,7 @@ namespace Api
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
 
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+                c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme()
                 {
                     Name = "Authorization",
                     Type = SecuritySchemeType.ApiKey,
@@ -104,10 +105,10 @@ namespace Api
                                 },
                                 UnresolvedReference = true
                             },
-                            new string[] {}
-
+                            Array.Empty<string>()
                     }
                 });
+                //c.OperationFilter<SecurityRequirementsOperationFilter>();
             });
 
         }

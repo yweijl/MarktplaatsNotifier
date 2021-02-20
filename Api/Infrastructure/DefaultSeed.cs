@@ -54,7 +54,6 @@ namespace Api.Infrastructure
             await userManager.CreateAsync(user, "Qwerty1!");
             await userManager.AddToRoleAsync(user, "User");
 
-            context.Users.Add(user);
             context.SaveChanges();
         }
     }
