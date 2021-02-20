@@ -10,11 +10,9 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using Api.Dtos;
 using Runner.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Api.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]

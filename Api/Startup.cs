@@ -1,9 +1,11 @@
 using Api.Infrastructure;
 using Core.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,12 +34,35 @@ namespace Api
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+
+            services.AddSingleton<IScraper, Runner.Runner>();
+
+            services.AddScoped<DatabaseContext>();
+
             services.AddDbContext<DatabaseContext>(options =>
                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
             services.AddIdentity<User, Role>()
                .AddEntityFrameworkStores<DatabaseContext>()
                .AddDefaultTokenProviders();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy(name: _allowedOrigins,
+                                  builder =>
+                                  {
+                                      builder.WithOrigins("http://localhost:4200");
+                                      builder.AllowAnyHeader();
+                                      builder.AllowAnyMethod();
+                                  });
+            });
+
+            services.AddAuthorization(options =>
+            {
+                options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .Build();
+            });
 
             // Adding Authentication  
             services.AddAuthentication(options =>
@@ -59,23 +84,13 @@ namespace Api
                  };
              });
 
-            services.AddSingleton<IScraper, Runner.Runner>();
-
-            services.AddScoped<DatabaseContext>();
-
-            services.AddCors(options =>
+            services.AddControllers(config =>
             {
-                options.AddPolicy(name: _allowedOrigins,
-                                  builder =>
-                                  {
-                                      builder.WithOrigins("http://localhost:4200");
-                                      builder.AllowAnyHeader();
-                                      builder.AllowAnyMethod();
-                                  });
-            });
-
-            services.AddControllers()
-                .AddNewtonsoftJson(options =>
+                var policy = new AuthorizationPolicyBuilder()
+                                 .RequireAuthenticatedUser()
+                                 .Build();
+                config.Filters.Add(new AuthorizeFilter(policy));
+            }).AddNewtonsoftJson(options =>
                 options.SerializerSettings.ReferenceLoopHandling =
                 Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 
@@ -84,14 +99,13 @@ namespace Api
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
 
-                c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme()
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
                     Name = "Authorization",
-                    Type = SecuritySchemeType.ApiKey,
-                    //Scheme = "Bearer",
-                    BearerFormat = "JWT",
                     In = ParameterLocation.Header,
-                    Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\"",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
                 });
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
@@ -103,16 +117,18 @@ namespace Api
                                     Type = ReferenceType.SecurityScheme,
                                     Id = "Bearer"
                                 },
+                                Scheme = "oauth2",
+                                Name = "Bearer",
+                                In = ParameterLocation.Header,
                                 UnresolvedReference = true
                             },
                             Array.Empty<string>()
                     }
                 });
-                //c.OperationFilter<SecurityRequirementsOperationFilter>();
+
             });
 
         }
-
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -129,6 +145,7 @@ namespace Api
             app.UseRouting();
             app.UseCors(_allowedOrigins);
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
