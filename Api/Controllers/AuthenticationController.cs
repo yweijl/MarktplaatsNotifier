@@ -35,6 +35,8 @@ namespace Api.Controllers
 
         [HttpPost]
         [Route("login")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Login([FromBody] LoginDto login)
         {
             var user = await userManager.FindByNameAsync(login.Username);
@@ -46,6 +48,7 @@ namespace Api.Controllers
                 {
                     new Claim(ClaimTypes.Name, user.UserName),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
                 };
 
                 foreach (var userRole in userRoles)
@@ -63,17 +66,20 @@ namespace Api.Controllers
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                     );
 
-                return Ok(new
-                {
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo
-                });
+                return Ok(new JwtSecurityTokenHandler().WriteToken(token));
+                //return Ok(new
+                //{
+                //    token = new JwtSecurityTokenHandler().WriteToken(token),
+                //    expiration = token.ValidTo
+                //});
             }
             return Unauthorized();
         }
 
         [HttpPost]
         [Route("register")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Register([FromBody] RegisterDto register)
         {
             var userExists = await userManager.FindByNameAsync(register.Username);
@@ -95,8 +101,9 @@ namespace Api.Controllers
             }
 
             await userManager.AddToRoleAsync(user, "User");
-
-            return Ok(new ResponseDto { Status = "Success", Message = "User created successfully!" });
+            var loginResponse = await Login(new LoginDto { Username = register.Username, Password = register.Password }) as OkObjectResult;
+           
+            return CreatedAtAction(nameof(Login), loginResponse.Value as string);
         }
     }
 }

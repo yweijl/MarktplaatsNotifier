@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using Api.Dtos;
 using Runner.Interfaces;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 
 namespace Api.Controllers
 {
@@ -32,6 +34,7 @@ namespace Api.Controllers
         [HttpGet("list")]
         [ProducesResponseType(typeof(List<Query>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+
         public async Task<IActionResult> GetList()
         {
             var queries = await
@@ -39,6 +42,7 @@ namespace Api.Controllers
                 .Queries
                 .Include(x => x.Advertisements)
                 .AsNoTracking()
+                .Where(x => x.UserId == GetUserID())
                 .ToListAsync();
 
             return queries is not null
@@ -56,7 +60,7 @@ namespace Api.Controllers
                 .Queries
                 .AsNoTracking()
                 .Include(x => x.Advertisements)
-                .SingleAsync(x => x.Id == queryId);
+                .SingleAsync(x => x.Id == queryId && x.UserId == GetUserID());
 
             return queries is not null
                 ? Ok(queries)
@@ -77,11 +81,11 @@ namespace Api.Controllers
                     MutationDate = date,
                     Name = newQuery.Name,
                     Url = newQuery.Url,
-                    //UserId = newQuery.UserId,
+                    UserId = GetUserID(),
                     Interval = 1
                 });
                 await _context.SaveChangesAsync();
-                return CreatedAtAction(nameof(Get), new { userId = stateTracker.Entity.Id }, stateTracker.Entity);
+                return CreatedAtAction(nameof(Get), new { queryId = stateTracker.Entity.Id }, stateTracker.Entity);
             }
             catch (Exception ex)
             {
@@ -95,7 +99,7 @@ namespace Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Put([FromBody] QueryDto query)
         {
-            var entity = await _context.Queries.SingleAsync(x => x.Id == query.Id);
+            var entity = await _context.Queries.SingleAsync(x => x.Id == query.Id && x.UserId == GetUserID());
             if (entity == null)
             {
                 return BadRequest();
@@ -113,7 +117,7 @@ namespace Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Delete(long queryId)
         {
-            var query = await _context.Queries.SingleAsync(x => x.Id == queryId);
+            var query = await _context.Queries.SingleAsync(x => x.Id == queryId && x.UserId == GetUserID());
 
             if (query == null)
             {
@@ -125,7 +129,7 @@ namespace Api.Controllers
             return Ok();
         }
 
-        [HttpGet("scrapeAdvertisements/{userId}/{queryId}")]
+        [HttpGet("scrapeAdvertisements/{queryId}")]
         [ProducesResponseType(typeof(List<Advertisement>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ScrapeAdverstisements(long queryId)
@@ -136,7 +140,7 @@ namespace Api.Controllers
                 _context
                 .Queries
                 .AsNoTracking()
-                .Where(x => x.Id == queryId)
+                .Where(x => x.Id == queryId && x.UserId == GetUserID())
                 .Select(x => x.Url).ToListAsync();
 
                 if (queryUrl.Count == 0)
@@ -164,8 +168,8 @@ namespace Api.Controllers
                 _logger.LogError(ex, "Error while scraping", new { queryId });
                 return BadRequest();
             }
-
         }
 
+        private long GetUserID() => long.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
     }
 }

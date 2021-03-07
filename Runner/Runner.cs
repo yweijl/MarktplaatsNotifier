@@ -117,7 +117,12 @@ namespace Runner
                 {
 
                     var anchor = item.QuerySelector("a") as IHtmlAnchorElement;
-                    var content = item.QuerySelector("div.mp-Listing-group").QuerySelector("div.mp-Listing-group--title-description-attributes");
+                    var content = item.QuerySelector("div.mp-Listing-group")?.QuerySelector("div.mp-Listing-group--title-description-attributes");
+                    if (content == null)
+                    {
+                        continue;
+                    }
+
                     var title = content.GetElementsByClassName("mp-Listing-title").First();
                     var description = content.GetElementsByClassName("mp-Listing-description").First();
 

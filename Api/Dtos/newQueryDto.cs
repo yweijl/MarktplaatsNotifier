@@ -8,7 +8,5 @@ namespace Api.Dtos
         public string Name { get; set; }
         [Required]
         public string Url { get; set; }
-        [Required]
-        public long UserId { get; set; }
     }
 }
